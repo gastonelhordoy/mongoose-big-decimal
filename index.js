@@ -8,6 +8,10 @@ var SchemaType = mongoose.SchemaType;
 var CastError = SchemaType.CastError;
 var errorMessages = mongoose.Error.messages;
 
+function looksLikeBigDecimal(v) {
+    return v && Array.isArray(v.c) && (v.s === 1 || v.s === -1) && typeof v.e === 'number' && typeof v.valueOf === 'function';
+}
+
 //override valueOf to return javascript Number than string
 var valueOf = BigDecimal.prototype.valueOf;
 BigDecimal.prototype.valueOf = function() {
@@ -149,6 +153,8 @@ SchemaBigDecimal.prototype.cast = function(value /*,doc , init*/ ) {
     //is bigdecimal
     if (value instanceof BigDecimal) {
         return value;
+    } else if (looksLikeBigDecimal(value)) {
+        return new BigDecimal(value.valueOf());
     }
 
     //is number or string
