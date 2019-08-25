@@ -9,7 +9,7 @@ var CastError = SchemaType.CastError;
 var errorMessages = mongoose.Error.messages;
 
 function looksLikeBigDecimal(v) {
-    return v && Array.isArray(v.c) && (v.s === 1 || v.s === -1) && typeof v.e === 'number' && typeof v.valueOf === 'function';
+    return v && Array.isArray(v.c) && (v.s === 1 || v.s === -1) && typeof v.e === 'number';
 }
 
 //override valueOf to return javascript Number than string
@@ -154,7 +154,11 @@ SchemaBigDecimal.prototype.cast = function(value /*,doc , init*/ ) {
     if (value instanceof BigDecimal) {
         return value;
     } else if (looksLikeBigDecimal(value)) {
-        return new BigDecimal(value.valueOf());
+        const clone = new BigDecimal(0);
+        clone.c = value.c;
+        clone.s = value.s;
+        clone.e = value.e;
+        return clone;
     }
 
     //is number or string
