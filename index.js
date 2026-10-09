@@ -219,7 +219,15 @@ SchemaBigDecimal.prototype.$conditionalHandlers = {
  * @private
  */
 SchemaBigDecimal.prototype.castForQuery = function($conditional, val) {
-    if (arguments.length === 2) {
+    // mongoose 5 and 6 call castForQuery(val) for an equality and castForQuery($conditional, val)
+    // for an operator; mongoose 7+ always call castForQuery($conditional, val, context), with a
+    // null $conditional for an equality
+    if (arguments.length === 1) {
+        val = $conditional;
+        $conditional = null;
+    }
+
+    if ($conditional != null) {
         var handler = this.$conditionalHandlers[$conditional];
 
         if (!handler) {
@@ -229,7 +237,7 @@ SchemaBigDecimal.prototype.castForQuery = function($conditional, val) {
         return handler.call(this, val).valueOf();
 
     } else {
-        return this.cast($conditional).valueOf();
+        return this.cast(val).valueOf();
     }
 
 };
