@@ -177,28 +177,32 @@ SchemaBigDecimal.prototype.cast = function(value /*,doc , init*/ ) {
 /*!
  * ignore
  */
+// what a query compares with: the stored number. Values used to stay Big inside $in/$nin lists,
+// where mongoose serialized them as strings that never matched, and a null threw on valueOf()
+function toStored(val) {
+    return null == val ? val : val.valueOf();
+}
+
 function handleSingle(val) {
     /*jshint validthis:true*/
 
-    return this.cast(val);
+    return toStored(this.cast(val));
 }
 
 function handleArray(val) {
     /*jshint validthis:true*/
 
-    if (!Array.isArray(val)) {
-        return [this.cast(val)];
-    }
-
-    return val.map(function(m) {
-        return this.cast(m);
+    return [].concat(val).map(function(m) {
+        return toStored(this.cast(m));
     }.bind(this));
 
 }
 
 
 //query conditions that are supported for bigdecimal schema types
-SchemaBigDecimal.prototype.$conditionalHandlers = {
+// extends mongoose's handlers ($eq, $exists, $type, $not...) instead of replacing them
+SchemaBigDecimal.prototype.$conditionalHandlers = Object.assign({}, mongoose.SchemaType.prototype.$conditionalHandlers, {
+    '$eq': handleSingle,
     '$lt': handleSingle,
     '$lte': handleSingle,
     '$gt': handleSingle,
@@ -208,7 +212,7 @@ SchemaBigDecimal.prototype.$conditionalHandlers = {
     '$nin': handleArray,
     '$mod': handleArray,
     '$all': handleArray
-};
+});
 
 
 /**
@@ -234,10 +238,10 @@ SchemaBigDecimal.prototype.castForQuery = function($conditional, val) {
             throw new Error('Can\'t use ' + $conditional + ' with BigDecimal.');
         }
 
-        return handler.call(this, val).valueOf();
+        return handler.call(this, val);
 
     } else {
-        return this.cast(val).valueOf();
+        return toStored(this.cast(val));
     }
 
 };
